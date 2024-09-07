@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>團隊財務表格</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans TC', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 90%;
+            width: 1000px;
+            margin: 20px;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        
+        th {
+            background-color: #4a90e2;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        tr:hover td {
+            background-color: #f5f5f5;
+            transform: scale(1.02);
+        }
+        
+        #plus-button, #edit-virtual-currency, #login-button, #logout-button {
+            padding: 15px 30px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 18px;
+            margin-top: 30px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        #plus-button:hover, #edit-virtual-currency:hover, #login-button:hover, #logout-button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        #overlay, #virtual-currency-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        #modal, #virtual-currency-modal {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+        }
+        
+        #close-button, #close-virtual-currency {
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+        
+        #close-button:hover, #close-virtual-currency:hover {
+            background: #ff6b81;
+            transform: rotate(90deg);
+        }
+        
+        #confirm-button, #virtual-currency-confirm {
+            padding: 12px 24px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        #confirm-button:hover, #virtual-currency-confirm:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .dropdown-container {
+            margin-bottom: 20px;
+            width: 100%;
+            position: relative;
+        }
+        
+        .dropdown-button {
+            width: 100%;
+            padding: 12px;
+            background-color: #f1f3f5;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+        
+        .dropdown-button:hover {
+            background-color: #e9ecef;
+        }
+        
+        .dropdown {
+            display: none;
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .dropdown a {
+            display: block;
+            padding: 12px;
+            color: #495057;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        
+        .dropdown a:hover {
+            background-color: #f8f9fa;
+            color: #228be6;
+        }
+        
+        .input-box {
+            margin-top: 20px;
+            width: 100%;
+        }
+        
+        .input-box input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+        
+        .input-box input:focus {
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+            outline: none;
+        }
+        
+        #virtual-currency-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #virtual-currency-section p {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        #login-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .login-modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            border-radius: 10px;
+        }
+
+        .login-close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .login-close:hover,
+        .login-close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        footer {
+            margin-top: 20px;
+            text-align: center;
+            color: #666;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            th, td {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            #plus-button, #edit-virtual-currency, #login-button, #logout-button {
+                padding: 10px 20px;
+                font-size: 16px;
+            }
+
+            #modal, #virtual-currency-modal {
+                width: 90%;
+                max-width: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <table>
+            <tr>
+                <th>團隊</th>
+                <th>現金</th>
+                <th>虛擬貨幣</th>
+                <th>流動資產</th>
+            </tr>
+            <tr>
+                <td>第一小隊</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>第二小隊</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>第三小隊</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>第四小隊</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>第五小隊</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>第六小隊</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+            </tr>
+        </table>
+    </div>
+
+    <button id="plus-button" class="disabled">+ 添加記錄</button>
+
+    <div id="overlay">
+        <div id="modal">
+            <button id="close-button">×</button>
+
+            <div class="dropdown-container">
+                <button id="dropdown1-button" class="dropdown-button">選擇小隊 <span id="selected-team"></span></button>
+                <div id="dropdown1-menu" class="dropdown">
+                    <a href="#" data-value="第一小隊">第一小隊</a>
+                    <a href="#" data-value="第二小隊">第二小隊</a>
+                    <a href="#" data-value="第三小隊">第三小隊</a>
+                    <a href="#" data-value="第四小隊">第四小隊</a>
+                    <a href="#" data-value="第五小隊">第五小隊</a>
+                    <a href="#" data-value="第六小隊">第六小隊</a>
+                </div>
+            </div>
+
+            <div class="dropdown-container">
+                <button id="dropdown2-button" class="dropdown-button">選擇類型 <span id="selected-type"></span></button>
+                <div id="dropdown2-menu" class="dropdown">
+                    <a href="#" data-value="現金">現金</a>
+                    <a href="#" data-value="虛擬貨幣">虛擬貨幣</a>
+                </div>
+            </div>
+
+            <div class="input-box">
+                <input type="number" placeholder="輸入數字" id="amount-input">
+            </div>
+            <button id="confirm-button">確認</button>
+        </div>
+    </div>
+
+    <div id="virtual-currency-section">
+        <p>虛擬貨幣價值：<span id="virtual-currency-value">0.00</span> 現金</p>
+        <button id="edit-virtual-currency" class="disabled">更改價值</button>
+    </div>
+
+    <div id="virtual-currency-overlay">
+        <div id="virtual-currency-modal">
+            <button id="close-virtual-currency">×</button>
+            <div class="input-box">
+                <input type="number" id="virtual-currency-value-input" placeholder="輸入虛擬貨幣價值">
+            </div>
+            <button id="virtual-currency-confirm">確認</button>
+        </div>
+    </div>
+
+    <button id="login-button">登入</button>
+    <button id="logout-button" style="display: none;">登出</button>
+
+    <div id="login-modal">
+        <div class="login-modal-content">
+            <span class="login-close">&times;</span>
+            <h2>登入</h2>
+            <form id="login-form">
+                <input type="text" id="username" placeholder="用戶名" required><br><br>
+                <input type="password" id="password" placeholder="密碼" required><br><br>
+                <button type="submit">登入</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+
+    <script>
+        const clientId = Math.random().toString(36).substr(2, 9);
+        let socket;
+
+        function connectWebSocket() {
+            socket = new WebSocket(`wss:https://polypoly-game-iz068htly-raymonds-projects-f5fef1fb.vercel.app/ws?id=${clientId}`);
+
+            socket.onopen = function() {
+                console.log('Connected to WebSocket server');
+                socket.send(JSON.stringify({ action: 'requestInitialData' }));
+            };
+
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.action === 'initialData') {
+                    applyInitialData(data.payload);
+                } else if (data.action === 'update') {
+                    applyUpdate(data.payload);
+                } else if (data.action === 'updateVirtualCurrencyValue') {
+                    applyVirtualCurrencyUpdate(data.payload);
+                }
+            };
+
+            socket.onclose = function() {
+                console.log('Disconnected from WebSocket server');
+                setTimeout(connectWebSocket, 5000);
+            };
+        }
+        function applyInitialData(payload) {
+            payload.teams.forEach(teamData => {
+                const { team, cash, virtualCurrency } = teamData;
+                updateTableUI(team, '現金', cash, false);
+                updateTableUI(team, '虛擬貨幣', virtualCurrency, false);
+            });
+            if (payload.virtualCurrencyValue) {
+                virtualCurrencyValue.textContent = parseFloat(payload.virtualCurrencyValue).toFixed(2);
+                updateAllTotalAssets(false);
+            }
+        }
+
+        function applyUpdate(payload) {
+            const { team, type, amount } = payload;
+            updateTableUI(team, type, amount, false);
+        }
+
+        function applyVirtualCurrencyUpdate(newValue) {
+            virtualCurrencyValue.textContent = parseFloat(newValue).toFixed(2);
+            updateAllTotalAssets(false);
+        }
+
+        window.addEventListener('load', connectWebSocket);
+
+        const plusButton = document.getElementById('plus-button');
+        const overlay = document.getElementById('overlay');
+        const modal = document.getElementById('modal');
+        const closeButton = document.getElementById('close-button');
+        const confirmButton = document.getElementById('confirm-button');
+        const dropdown1Button = document.getElementById('dropdown1-button');
+        const dropdown1Menu = document.getElementById('dropdown1-menu');
+        const dropdown2Button = document.getElementById('dropdown2-button');
+        const dropdown2Menu = document.getElementById('dropdown2-menu');
+        const dropdown1Links = document.querySelectorAll('#dropdown1-menu a');
+        const dropdown2Links = document.querySelectorAll('#dropdown2-menu a');
+        const selectedTeam = document.getElementById('selected-team');
+        const selectedType = document.getElementById('selected-type');
+        const amountInput = document.getElementById('amount-input');
+        const virtualCurrencyOverlay = document.getElementById('virtual-currency-overlay');
+        const virtualCurrencyModal = document.getElementById('virtual-currency-modal');
+        const editVirtualCurrencyButton = document.getElementById('edit-virtual-currency');
+        const closeVirtualCurrencyButton = document.getElementById('close-virtual-currency');
+        const virtualCurrencyValueInput = document.getElementById('virtual-currency-value-input');
+        const virtualCurrencyConfirmButton = document.getElementById('virtual-currency-confirm');
+        const virtualCurrencyValue = document.getElementById('virtual-currency-value');
+
+        function showModal() {
+            overlay.style.display = 'flex';
+            setTimeout(() => {
+                overlay.style.opacity = '1';
+                modal.style.transform = 'scale(1)';
+            }, 10);
+        }
+
+        function hideModal() {
+            overlay.style.opacity = '0';
+            modal.style.transform = 'scale(0.8)';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 300);
+        }
+
+        plusButton.addEventListener('click', function() {
+            if (isLoggedIn) {
+                showModal();
+            } else {
+                alert('請先登入');
+            }
+        });
+        
+        closeButton.addEventListener('click', hideModal);
+
+        confirmButton.addEventListener('click', function() {
+            const team = selectedTeam.textContent;
+            const type = selectedType.textContent;
+            const amount = parseFloat(amountInput.value);
+
+            if (!team || !type || isNaN(amount)) {
+                alert('請確保所有欄位都已填寫，且數字輸入正確。');
+                return;
+            }
+
+            updateTableUI(team, type, amount, true);
+            hideModal();
+            resetForm();
+        });
+
+        function resetForm() {
+            selectedTeam.textContent = '';
+            selectedType.textContent = '';
+            amountInput.value = '';
+        }
+
+        function updateTableUI(team, type, amount, shouldBroadcast) {
+            const rows = document.querySelectorAll('table tr');
+            for (let i = 1; i < rows.length; i++) {
+                const cells = rows[i].cells;
+                if (cells[0].textContent === team) {
+                    const typeIndex = type === '現金' ? 1 : 2;
+                    const currentAmount = parseFloat(cells[typeIndex].textContent);
+                    const newAmount = (currentAmount + amount).toFixed(2);
+                    cells[typeIndex].textContent = newAmount;
+                    updateTotalAssets(cells, shouldBroadcast);
+                    animateCell(cells[typeIndex]);
+
+                    if (shouldBroadcast && socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            action: 'update',
+                            payload: { team, type, amount: newAmount }
+                        }));
+                    }
+                    break;
+                }
+            }
+            
+            if (shouldBroadcast && socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    action: 'update',
+                    payload: { team, type, amount }
+                }));
+            }
+        }
+
+        function updateTotalAssets(cells, shouldBroadcast) {
+            const cash = parseFloat(cells[1].textContent);
+            const virtualCurrency = parseFloat(cells[2].textContent);
+            const virtualCurrencyValueFloat = parseFloat(virtualCurrencyValue.textContent);
+            const totalAssets = (cash + virtualCurrency * virtualCurrencyValueFloat).toFixed(2);
+            cells[3].textContent = totalAssets;
+            animateCell(cells[3]);
+        }
+
+        function animateCell(cell) {
+            cell.style.transition = 'background-color 0.5s ease';
+            cell.style.backgroundColor = '#4CAF50';
+            cell.style.color = 'white';
+            setTimeout(() => {
+                cell.style.backgroundColor = '';
+                cell.style.color = '';
+            }, 500);
+        }
+
+        [dropdown1Button, dropdown2Button].forEach((button, index) => {
+            button.addEventListener('click', function() {
+                const menu = index === 0 ? dropdown1Menu : dropdown2Menu;
+                const otherMenu = index === 0 ? dropdown2Menu : dropdown1Menu;
+                menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+                otherMenu.style.display = 'none';
+            });
+        });
+
+        [dropdown1Links, dropdown2Links].forEach((links, index) => {
+            links.forEach(link => {
+                link.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const selectedValue = this.getAttribute('data-value');
+                    const targetSpan = index === 0 ? selectedTeam : selectedType;
+                    targetSpan.textContent = selectedValue;
+                    (index === 0 ? dropdown1Menu : dropdown2Menu).style.display = 'none';
+                });
+            });
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!modal.contains(event.target) && !plusButton.contains(event.target)) {
+                dropdown1Menu.style.display = 'none';
+                dropdown2Menu.style.display = 'none';
+            }
+        });
+
+        editVirtualCurrencyButton.addEventListener('click', function() {
+            if (isLoggedIn) {
+                virtualCurrencyOverlay.style.display = 'flex';
+                setTimeout(() => {
+                    virtualCurrencyOverlay.style.opacity = '1';
+                    virtualCurrencyModal.style.transform = 'scale(1)';
+                }, 10);
+            } else {
+                alert('請先登入');
+            }
+        });
+
+        closeVirtualCurrencyButton.addEventListener('click', () => {
+            virtualCurrencyOverlay.style.opacity = '0';
+            virtualCurrencyModal.style.transform = 'scale(0.8)';
+            setTimeout(() => {
+                virtualCurrencyOverlay.style.display = 'none';
+                virtualCurrencyValueInput.value = '';
+            }, 300);
+        });
+
+        function updateAllTotalAssets(shouldBroadcast) {
+            const rows = document.querySelectorAll('table tr');
+            for (let i = 1; i < rows.length; i++) {
+                updateTotalAssets(rows[i].cells, shouldBroadcast);
+            }
+        }
+
+        virtualCurrencyConfirmButton.addEventListener('click', () => {
+            if (virtualCurrencyValueInput.value) {
+                const newValue = parseFloat(virtualCurrencyValueInput.value).toFixed(2);
+                virtualCurrencyValue.textContent = newValue;
+                updateAllTotalAssets(true);
+                closeVirtualCurrencyButton.click();
+
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        action: 'updateVirtualCurrencyValue',
+                        payload: newValue
+                    }));
+                }
+            }
+        });
+
+        let isLoggedIn = false;
+        const loginButton = document.getElementById('login-button');
+        const logoutButton = document.getElementById('logout-button');
+        const loginModal = document.getElementById('login-modal');
+        const loginForm = document.getElementById('login-form');
+        const loginClose = document.querySelector('.login-close');
+
+        function showLoginModal() {
+            loginModal.style.display = 'block';
+        }
+
+        function hideLoginModal() {
+            loginModal.style.display = 'none';
+        }
+
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username === 'raymond' && password === '6666') {
+                isLoggedIn = true;
+                hideLoginModal();
+                loginButton.style.display = 'none';
+                logoutButton.style.display = 'inline-block';
+                enableButtons();
+                alert('登入成功！');
+            } else {
+                alert('用戶名或密碼錯誤，請重試。');
+            }
+        }
+
+        function logout() {
+            isLoggedIn = false;
+            loginButton.style.display = 'inline-block';
+            logoutButton.style.display = 'none';
+            disableButtons();
+            alert('已成功登出！');
+        }
+
+        function enableButtons() {
+            plusButton.classList.remove('disabled');
+            editVirtualCurrencyButton.classList.remove('disabled');
+        }
+
+        function disableButtons() {
+            plusButton.classList.add('disabled');
+            editVirtualCurrencyButton.classList.add('disabled');
+        }
+
+        loginButton.addEventListener('click', showLoginModal);
+        logoutButton.addEventListener('click', logout);
+        loginClose.addEventListener('click', hideLoginModal);
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            login();
+        });
+
+        // 初始禁用按鈕
+        disableButtons();
+
+        // 初始化 WebSocket 連接
+        connectWebSocket();
+    </script>
+</body>
+<footer>
+    <p> © PolyPoly All Rights Reserved. Designed by RaymondYang.</p> 
+</footer>
+</html>
