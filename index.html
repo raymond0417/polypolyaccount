@@ -406,7 +406,7 @@
         let socket;
 
         function connectWebSocket() {
-            socket = new WebSocket(`wss:https://polypoly-game-iz068htly-raymonds-projects-f5fef1fb.vercel.app/ws?id=${clientId}`);
+            socket = new WebSocket(`wss://polypoly-game-iz068htly-raymonds-projects-f5fef1fb.vercel.app/ws?id=${clientId}`);
 
             socket.onopen = function() {
                 console.log('Connected to WebSocket server');
