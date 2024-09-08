@@ -398,61 +398,72 @@
             </form>
         </div>
     </div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
 
     <script>
-        const clientId = Math.random().toString(36).substr(2, 9);
+    document.addEventListener('DOMContentLoaded', function() {
+        const clientId = localStorage.getItem('clientId') || Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('clientId', clientId);
         let socket;
-
+        let isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    
         function connectWebSocket() {
-            socket = new WebSocket(`wss://polypoly-game-iz068htly-raymonds-projects-f5fef1fb.vercel.app/ws?id=${clientId}`);
-
+            socket = new WebSocket(`wss://polypoly-accountserver-4yl827v4a-raymonds-projects-f5fef1fb.vercel.app/ws?id=${clientId}`);
+            
             socket.onopen = function() {
                 console.log('Connected to WebSocket server');
                 socket.send(JSON.stringify({ action: 'requestInitialData' }));
             };
-
+    
             socket.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                if (data.action === 'initialData') {
-                    applyInitialData(data.payload);
-                } else if (data.action === 'update') {
-                    applyUpdate(data.payload);
-                } else if (data.action === 'updateVirtualCurrencyValue') {
-                    applyVirtualCurrencyUpdate(data.payload);
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.action === 'initialData') {
+                        applyInitialData(data.payload);
+                    } else if (data.action === 'update') {
+                        applyUpdate(data.payload);
+                    } else if (data.action === 'updateVirtualCurrencyValue') {
+                        applyVirtualCurrencyUpdate(data.payload);
+                    } else if (data.action === 'error') {
+                        console.error('Server error:', data.message);
+                    }
+                } catch (error) {
+                    console.error('Error processing message:', error);
                 }
             };
-
-            socket.onclose = function() {
-                console.log('Disconnected from WebSocket server');
+    
+            socket.onerror = function(error) {
+                console.error('WebSocket Error:', error);
+            };
+    
+            socket.onclose = function(event) {
+                console.log('Disconnected from WebSocket server:', event.reason);
                 setTimeout(connectWebSocket, 5000);
             };
         }
+    
         function applyInitialData(payload) {
             payload.teams.forEach(teamData => {
                 const { team, cash, virtualCurrency } = teamData;
-                updateTableUI(team, '現金', cash, false);
-                updateTableUI(team, '虛擬貨幣', virtualCurrency, false);
+                updateTableUI(team, '現金', parseFloat(cash), false);
+                updateTableUI(team, '虛擬貨幣', parseFloat(virtualCurrency), false);
             });
             if (payload.virtualCurrencyValue) {
                 virtualCurrencyValue.textContent = parseFloat(payload.virtualCurrencyValue).toFixed(2);
                 updateAllTotalAssets(false);
             }
         }
-
+    
         function applyUpdate(payload) {
             const { team, type, amount } = payload;
-            updateTableUI(team, type, amount, false);
+            updateTableUI(team, type, parseFloat(amount), false);
         }
-
+    
         function applyVirtualCurrencyUpdate(newValue) {
             virtualCurrencyValue.textContent = parseFloat(newValue).toFixed(2);
             updateAllTotalAssets(false);
         }
-
-        window.addEventListener('load', connectWebSocket);
-
+    
         const plusButton = document.getElementById('plus-button');
         const overlay = document.getElementById('overlay');
         const modal = document.getElementById('modal');
@@ -474,7 +485,7 @@
         const virtualCurrencyValueInput = document.getElementById('virtual-currency-value-input');
         const virtualCurrencyConfirmButton = document.getElementById('virtual-currency-confirm');
         const virtualCurrencyValue = document.getElementById('virtual-currency-value');
-
+    
         function showModal() {
             overlay.style.display = 'flex';
             setTimeout(() => {
@@ -482,7 +493,7 @@
                 modal.style.transform = 'scale(1)';
             }, 10);
         }
-
+    
         function hideModal() {
             overlay.style.opacity = '0';
             modal.style.transform = 'scale(0.8)';
@@ -490,7 +501,7 @@
                 overlay.style.display = 'none';
             }, 300);
         }
-
+    
         plusButton.addEventListener('click', function() {
             if (isLoggedIn) {
                 showModal();
@@ -500,28 +511,28 @@
         });
         
         closeButton.addEventListener('click', hideModal);
-
+    
         confirmButton.addEventListener('click', function() {
             const team = selectedTeam.textContent;
             const type = selectedType.textContent;
             const amount = parseFloat(amountInput.value);
-
+    
             if (!team || !type || isNaN(amount)) {
                 alert('請確保所有欄位都已填寫，且數字輸入正確。');
                 return;
             }
-
+    
             updateTableUI(team, type, amount, true);
             hideModal();
             resetForm();
         });
-
+    
         function resetForm() {
             selectedTeam.textContent = '';
             selectedType.textContent = '';
             amountInput.value = '';
         }
-
+    
         function updateTableUI(team, type, amount, shouldBroadcast) {
             const rows = document.querySelectorAll('table tr');
             for (let i = 1; i < rows.length; i++) {
@@ -533,7 +544,7 @@
                     cells[typeIndex].textContent = newAmount;
                     updateTotalAssets(cells, shouldBroadcast);
                     animateCell(cells[typeIndex]);
-
+    
                     if (shouldBroadcast && socket && socket.readyState === WebSocket.OPEN) {
                         socket.send(JSON.stringify({
                             action: 'update',
@@ -543,15 +554,8 @@
                     break;
                 }
             }
-            
-            if (shouldBroadcast && socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({
-                    action: 'update',
-                    payload: { team, type, amount }
-                }));
-            }
         }
-
+    
         function updateTotalAssets(cells, shouldBroadcast) {
             const cash = parseFloat(cells[1].textContent);
             const virtualCurrency = parseFloat(cells[2].textContent);
@@ -560,7 +564,7 @@
             cells[3].textContent = totalAssets;
             animateCell(cells[3]);
         }
-
+    
         function animateCell(cell) {
             cell.style.transition = 'background-color 0.5s ease';
             cell.style.backgroundColor = '#4CAF50';
@@ -570,7 +574,7 @@
                 cell.style.color = '';
             }, 500);
         }
-
+    
         [dropdown1Button, dropdown2Button].forEach((button, index) => {
             button.addEventListener('click', function() {
                 const menu = index === 0 ? dropdown1Menu : dropdown2Menu;
@@ -579,7 +583,7 @@
                 otherMenu.style.display = 'none';
             });
         });
-
+    
         [dropdown1Links, dropdown2Links].forEach((links, index) => {
             links.forEach(link => {
                 link.addEventListener('click', function(event) {
@@ -591,14 +595,14 @@
                 });
             });
         });
-
+    
         document.addEventListener('click', function(event) {
             if (!modal.contains(event.target) && !plusButton.contains(event.target)) {
                 dropdown1Menu.style.display = 'none';
                 dropdown2Menu.style.display = 'none';
             }
         });
-
+    
         editVirtualCurrencyButton.addEventListener('click', function() {
             if (isLoggedIn) {
                 virtualCurrencyOverlay.style.display = 'flex';
@@ -610,7 +614,7 @@
                 alert('請先登入');
             }
         });
-
+    
         closeVirtualCurrencyButton.addEventListener('click', () => {
             virtualCurrencyOverlay.style.opacity = '0';
             virtualCurrencyModal.style.transform = 'scale(0.8)';
@@ -619,21 +623,21 @@
                 virtualCurrencyValueInput.value = '';
             }, 300);
         });
-
+    
         function updateAllTotalAssets(shouldBroadcast) {
             const rows = document.querySelectorAll('table tr');
             for (let i = 1; i < rows.length; i++) {
                 updateTotalAssets(rows[i].cells, shouldBroadcast);
             }
         }
-
+    
         virtualCurrencyConfirmButton.addEventListener('click', () => {
             if (virtualCurrencyValueInput.value) {
                 const newValue = parseFloat(virtualCurrencyValueInput.value).toFixed(2);
                 virtualCurrencyValue.textContent = newValue;
                 updateAllTotalAssets(true);
                 closeVirtualCurrencyButton.click();
-
+    
                 if (socket && socket.readyState === WebSocket.OPEN) {
                     socket.send(JSON.stringify({
                         action: 'updateVirtualCurrencyValue',
@@ -642,28 +646,28 @@
                 }
             }
         });
-
-        let isLoggedIn = false;
+    
         const loginButton = document.getElementById('login-button');
         const logoutButton = document.getElementById('logout-button');
         const loginModal = document.getElementById('login-modal');
         const loginForm = document.getElementById('login-form');
         const loginClose = document.querySelector('.login-close');
-
+    
         function showLoginModal() {
             loginModal.style.display = 'block';
         }
-
+    
         function hideLoginModal() {
             loginModal.style.display = 'none';
         }
-
+    
         function login() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-
+    
             if (username === 'raymond' && password === '6666') {
                 isLoggedIn = true;
+                localStorage.setItem('isLoggedIn', 'true');
                 hideLoginModal();
                 loginButton.style.display = 'none';
                 logoutButton.style.display = 'inline-block';
@@ -673,25 +677,26 @@
                 alert('用戶名或密碼錯誤，請重試。');
             }
         }
-
+    
         function logout() {
             isLoggedIn = false;
+            localStorage.removeItem('isLoggedIn');
             loginButton.style.display = 'inline-block';
             logoutButton.style.display = 'none';
             disableButtons();
             alert('已成功登出！');
         }
-
+    
         function enableButtons() {
             plusButton.classList.remove('disabled');
             editVirtualCurrencyButton.classList.remove('disabled');
         }
-
+    
         function disableButtons() {
             plusButton.classList.add('disabled');
             editVirtualCurrencyButton.classList.add('disabled');
         }
-
+    
         loginButton.addEventListener('click', showLoginModal);
         logoutButton.addEventListener('click', logout);
         loginClose.addEventListener('click', hideLoginModal);
@@ -699,12 +704,17 @@
             e.preventDefault();
             login();
         });
-
-        // 初始禁用按鈕
-        disableButtons();
-
-        // 初始化 WebSocket 連接
+    
+        // 初始化
         connectWebSocket();
+        if (isLoggedIn) {
+            loginButton.style.display = 'none';
+            logoutButton.style.display = 'inline-block';
+            enableButtons();
+        } else {
+            disableButtons();
+        }
+    });
     </script>
 </body>
 <footer>
